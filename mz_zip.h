@@ -156,7 +156,7 @@ int32_t mz_zip_locate_next_entry(void *handle, void *userdata, mz_zip_locate_ent
 
 /***************************************************************************/
 
-int32_t mz_zip_attrib_is_dir(int32_t attrib, int32_t version_madeby);
+int32_t  mz_zip_attrib_is_dir(uint32_t attributes, uint16_t version_madeby);
 // Checks to see if the attribute is a directory based on platform
 
 int32_t mz_zip_attrib_convert(uint8_t src_sys, int32_t src_attrib, uint8_t target_sys, int32_t *target_attrib);
