@@ -1859,7 +1859,7 @@ int32_t mz_zip_locate_next_entry(void *handle, void *userdata, mz_zip_locate_ent
 
 /***************************************************************************/
 
-int32_t mz_zip_attrib_is_dir(uint32_t attributes, uint16_t version_madeby)
+int32_t mz_zip_attrib_is_dir(uint32_t attrib, uint16_t version_madeby)
 {
     int32_t system = MZ_HOST_SYSTEM(version_madeby);
     int32_t posix_attrib = 0;
