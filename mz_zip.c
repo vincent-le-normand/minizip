@@ -1458,6 +1458,14 @@ int32_t mz_zip_entry_read_open(void *handle, uint8_t raw, const char *password)
     err = mz_stream_seek(zip->stream, zip->file_info.disk_offset + zip->disk_offset_shift, MZ_SEEK_SET);
     if (err == MZ_OK)
         err = mz_zip_entry_read_header(zip->stream, 1, &zip->local_file_info, zip->local_file_info_stream);
+	if (err == MZ_FORMAT_ERROR && zip->disk_offset_shift>0) {
+		err = mz_stream_seek(zip->stream, zip->file_info.disk_offset, MZ_SEEK_SET);
+		if (err == MZ_OK)
+			err = mz_zip_entry_read_header(zip->stream, 1, &zip->local_file_info, zip->local_file_info_stream);
+	}
+	if (err != MZ_OK) {
+		printf("Failed to fetch item");
+	}
 
 #ifdef MZ_ZIP_NO_DECOMPRESSION
     if (zip->file_info.compression_method != MZ_COMPRESS_METHOD_STORE)
