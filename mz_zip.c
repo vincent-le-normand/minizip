@@ -1751,7 +1751,7 @@ int32_t mz_zip_get_disk_number_with_cd(void *handle, uint32_t *disk_number_with_
     return MZ_OK;
 }
 
-uint64_t mz_zip_get_entry(void *handle)
+int64_t mz_zip_get_entry(void *handle)
 {
     mz_zip *zip = (mz_zip *)handle;
 
