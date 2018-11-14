@@ -1,5 +1,5 @@
 /* mz_strm_buf.c -- Stream for buffering reads/writes
-   Version 2.6.0, October 8, 2018
+   Version 2.7.5, November 13, 2018
    part of the MiniZip project
 
    This version of ioapi is designed to buffer IO.
@@ -14,20 +14,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <stdarg.h>
 #include <errno.h>
 
 #include "mz.h"
 #include "mz_strm.h"
 #include "mz_strm_buf.h"
-
-/***************************************************************************/
-
-#if 0
-#  define mz_stream_buffered_print(s,f,...) printf(f,__VA_ARGS__);
-#else
-#  define mz_stream_buffered_print(s,f,...)
-#endif
 
 /***************************************************************************/
 
@@ -66,6 +57,14 @@ typedef struct mz_stream_buffered_s {
 
 /***************************************************************************/
 
+#if 0
+#  define mz_stream_buffered_print printf
+#else
+#  define mz_stream_buffered_print(fmt,...)
+#endif
+
+/***************************************************************************/
+
 static int32_t mz_stream_buffered_reset(void *stream)
 {
     mz_stream_buffered *buffered = (mz_stream_buffered *)stream;
@@ -82,7 +81,7 @@ static int32_t mz_stream_buffered_reset(void *stream)
 int32_t mz_stream_buffered_open(void *stream, const char *path, int32_t mode)
 {
     mz_stream_buffered *buffered = (mz_stream_buffered *)stream;
-    mz_stream_buffered_print(buffered, "open [mode %d]\n", mode);
+    mz_stream_buffered_print("Buffered - Open (mode %d)\n", mode);
     mz_stream_buffered_reset(buffered);
     return mz_stream_open(buffered->stream.base, path, mode);
 }
@@ -109,11 +108,11 @@ static int32_t mz_stream_buffered_flush(void *stream, int32_t *written)
             buffered->writebuf + (bytes_to_write - bytes_left_to_write), bytes_left_to_write);
 
         if (bytes_written != bytes_left_to_write)
-            return MZ_STREAM_ERROR;
+            return MZ_WRITE_ERROR;
 
         buffered->writebuf_misses += 1;
 
-        mz_stream_buffered_print(stream, "write flush [%d:%d len %d]\n",
+        mz_stream_buffered_print("Buffered - Write flush (%d:%d len %d)\n",
             bytes_to_write, bytes_left_to_write, buffered->writebuf_len);
 
         total_bytes_written += bytes_written;
@@ -137,11 +136,11 @@ int32_t mz_stream_buffered_read(void *stream, void *buf, int32_t size)
     int32_t bytes_left_to_read = size;
     int32_t bytes_read = 0;
 
-    mz_stream_buffered_print(stream, "read [size %ld pos %lld]\n", size, buffered->position);
+    mz_stream_buffered_print("Buffered - Read (size %d pos %lld)\n", size, buffered->position);
 
     if (buffered->writebuf_len > 0)
     {
-        mz_stream_buffered_print(stream, "switch from write to read, not yet supported [%lld]\n",
+        mz_stream_buffered_print("Buffered - Switch from write to read, not yet supported (pos %lld)\n",
             buffered->position);
     }
 
@@ -164,7 +163,7 @@ int32_t mz_stream_buffered_read(void *stream, void *buf, int32_t size)
             buffered->readbuf_len += bytes_read;
             buffered->position += bytes_read;
 
-            mz_stream_buffered_print(stream, "filled [read %d/%d buf %d:%d pos %lld]\n",
+            mz_stream_buffered_print("Buffered - Filled (read %d/%d buf %d:%d pos %lld)\n",
                 bytes_read, bytes_to_read, buffered->readbuf_pos, buffered->readbuf_len, buffered->position);
 
             if (bytes_read == 0)
@@ -185,7 +184,7 @@ int32_t mz_stream_buffered_read(void *stream, void *buf, int32_t size)
             buffered->readbuf_hits += 1;
             buffered->readbuf_pos += bytes_to_copy;
 
-            mz_stream_buffered_print(stream, "emptied [copied %d remaining %d buf %d:%d pos %lld]\n",
+            mz_stream_buffered_print("Buffered - Emptied (copied %d remaining %d buf %d:%d pos %lld)\n",
                 bytes_to_copy, bytes_left_to_read, buffered->readbuf_pos, buffered->readbuf_len, buffered->position);
         }
     }
@@ -201,9 +200,10 @@ int32_t mz_stream_buffered_write(void *stream, const void *buf, int32_t size)
     int32_t bytes_to_copy = 0;
     int32_t bytes_used = 0;
     int32_t bytes_flushed = 0;
+    int32_t err = MZ_OK;
 
 
-    mz_stream_buffered_print(stream, "write [size %ld len %d pos %lld]\n",
+    mz_stream_buffered_print("Buffered - Write (size %d len %d pos %lld)\n",
         size, buffered->writebuf_len, buffered->position);
 
     if (buffered->readbuf_len > 0)
@@ -214,10 +214,11 @@ int32_t mz_stream_buffered_write(void *stream, const void *buf, int32_t size)
         buffered->readbuf_len = 0;
         buffered->readbuf_pos = 0;
 
-        mz_stream_buffered_print(stream, "switch from read to write [%lld]\n", buffered->position);
+        mz_stream_buffered_print("Buffered - Switch from read to write (pos %lld)\n", buffered->position);
 
-        if (mz_stream_seek(buffered->stream.base, buffered->position, MZ_SEEK_SET) != MZ_OK)
-            return MZ_STREAM_ERROR;
+        err = mz_stream_seek(buffered->stream.base, buffered->position, MZ_SEEK_SET);
+        if (err != MZ_OK)
+            return err;
     }
 
     while (bytes_left_to_write > 0)
@@ -231,17 +232,19 @@ int32_t mz_stream_buffered_write(void *stream, const void *buf, int32_t size)
 
         if (bytes_to_copy == 0)
         {
-            if (mz_stream_buffered_flush(stream, &bytes_flushed) != MZ_OK)
-                return MZ_STREAM_ERROR;
+            err = mz_stream_buffered_flush(stream, &bytes_flushed);
+            if (err != MZ_OK)
+                return err;
             if (bytes_flushed == 0)
                 return 0;
 
             continue;
         }
 
-        memcpy(buffered->writebuf + buffered->writebuf_pos, (const char *)buf + (bytes_to_write - bytes_left_to_write), bytes_to_copy);
+        memcpy(buffered->writebuf + buffered->writebuf_pos, 
+            (const char *)buf + (bytes_to_write - bytes_left_to_write), bytes_to_copy);
 
-        mz_stream_buffered_print(stream, "write copy [remaining %d write %d:%d len %d]\n",
+        mz_stream_buffered_print("Buffered - Write copy (remaining %d write %d:%d len %d)\n",
             bytes_to_copy, bytes_to_write, bytes_left_to_write, buffered->writebuf_len);
 
         bytes_left_to_write -= bytes_to_copy;
@@ -262,7 +265,7 @@ int64_t mz_stream_buffered_tell(void *stream)
 
     buffered->position = position;
 
-    mz_stream_buffered_print(stream, "tell [pos %llu readpos %d writepos %d err %d]\n",
+    mz_stream_buffered_print("Buffered - Tell (pos %lld readpos %d writepos %d err %d)\n",
         buffered->position, buffered->readbuf_pos, buffered->writebuf_pos, errno);
 
     if (buffered->readbuf_len > 0)
@@ -276,8 +279,10 @@ int32_t mz_stream_buffered_seek(void *stream, int64_t offset, int32_t origin)
 {
     mz_stream_buffered *buffered = (mz_stream_buffered *)stream;
     int32_t bytes_flushed = 0;
+    int32_t err = MZ_OK;
 
-    mz_stream_buffered_print(stream, "seek [origin %d offset %llu pos %lld]\n", origin, offset, buffered->position);
+    mz_stream_buffered_print("Buffered - Seek (origin %d offset %lld pos %lld)\n", 
+        origin, offset, buffered->position);
 
     switch (origin)
     {
@@ -299,8 +304,9 @@ int32_t mz_stream_buffered_seek(void *stream, int64_t offset, int32_t origin)
                 return MZ_OK;
             }
 
-            if (mz_stream_buffered_flush(stream, &bytes_flushed) != MZ_OK)
-                return MZ_STREAM_ERROR;
+            err = mz_stream_buffered_flush(stream, &bytes_flushed);
+            if (err != MZ_OK)
+                return err;
 
             buffered->position = offset;
             break;
@@ -327,8 +333,9 @@ int32_t mz_stream_buffered_seek(void *stream, int64_t offset, int32_t origin)
                 //offset -= (buffered->writebuf_len - buffered->writebuf_pos);
             }
 
-            if (mz_stream_buffered_flush(stream, &bytes_flushed) != MZ_OK)
-                return MZ_STREAM_ERROR;
+            err = mz_stream_buffered_flush(stream, &bytes_flushed);
+            if (err != MZ_OK)
+                return err;
 
             break;
 
@@ -356,17 +363,17 @@ int32_t mz_stream_buffered_close(void *stream)
     int32_t bytes_flushed = 0;
 
     mz_stream_buffered_flush(stream, &bytes_flushed);
-    mz_stream_buffered_print(stream, "close [flushed %d]\n", bytes_flushed);
+    mz_stream_buffered_print("Buffered - Close (flushed %d)\n", bytes_flushed);
 
     if (buffered->readbuf_hits + buffered->readbuf_misses > 0)
     {
-        mz_stream_buffered_print(stream, "read efficiency %.02f%%\n",
+        mz_stream_buffered_print("Buffered - Read efficiency %.02f%%\n",
             (buffered->readbuf_hits / ((float)buffered->readbuf_hits + buffered->readbuf_misses)) * 100);
     }
 
     if (buffered->writebuf_hits + buffered->writebuf_misses > 0)
     {
-        mz_stream_buffered_print(stream, "write efficiency %.02f%%\n",
+        mz_stream_buffered_print("Buffered - Write efficiency %.02f%%\n",
             (buffered->writebuf_hits / ((float)buffered->writebuf_hits + buffered->writebuf_misses)) * 100);
     }
 
