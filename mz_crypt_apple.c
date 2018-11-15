@@ -27,8 +27,12 @@
 
 int32_t mz_crypt_rand(uint8_t *buf, int32_t size)
 {
-    if (CCRandomGenerateBytes(buf, size) != kCCSuccess)
-        return 0;
+	if (__builtin_available(macOS 10.10, *)) {
+		if (CCRandomGenerateBytes(buf, size) != kCCSuccess)
+			return 0;
+	} else {
+		arc4random_buf(buf, (uint32_t)size);
+	}
     return size;
 }
 
