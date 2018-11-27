@@ -118,9 +118,10 @@ static int32_t mz_zip_search_eocd(void *stream, int64_t *central_pos)
     int64_t file_size = 0;
     int64_t max_back = 0;
     uint8_t find[4] = MZ_ZIP_MAGIC_ENDHEADERU8;
-    int32_t err = MZ_OK;
-
-    err = mz_stream_seek(stream, 0, MZ_SEEK_END);
+    int32_t err = mz_stream_seek(stream, 0, MZ_SEEK_END);
+	
+	if (err != MZ_OK)
+		return err;
 
     file_size = mz_stream_tell(stream);
 
@@ -148,7 +149,7 @@ static int32_t mz_zip_search_zip64_eocd(void *stream, const int64_t end_central_
     if (err == MZ_OK)
     {
         err = mz_stream_read_uint32(stream, &value32);
-        if (value32 != MZ_ZIP_MAGIC_ENDLOCHEADER64)
+        if (err == MZ_OK && value32 != MZ_ZIP_MAGIC_ENDLOCHEADER64)
             err = MZ_FORMAT_ERROR;
     }
     // Number of the disk with the start of the zip64 end of  central directory
