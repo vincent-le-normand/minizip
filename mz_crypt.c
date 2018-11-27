@@ -126,7 +126,8 @@ int32_t  mz_crypt_pbkdf2(uint8_t *password, int32_t password_length, uint8_t *sa
     mz_crypt_hmac_set_algorithm(hmac3, MZ_HASH_SHA1);
 
     err = mz_crypt_hmac_init(hmac1, password, password_length);
-    err = mz_crypt_hmac_init(hmac2, password, password_length);
+	if (err == MZ_OK)
+    	err = mz_crypt_hmac_init(hmac2, password, password_length);
     if (err == MZ_OK)
         err = mz_crypt_hmac_update(hmac2, salt, salt_length);
     
@@ -148,12 +149,14 @@ int32_t  mz_crypt_pbkdf2(uint8_t *password, int32_t password_length, uint8_t *sa
         for (j = 0, k = 4; j < iteration_count; j += 1)
         {
             err = mz_crypt_hmac_update(hmac3, uu, k);
-            err = mz_crypt_hmac_end(hmac3, uu, sizeof(uu));
+			if (err == MZ_OK)
+            	err = mz_crypt_hmac_end(hmac3, uu, sizeof(uu));
 
             for(k = 0; k < MZ_HASH_SHA1_SIZE; k += 1)
                 ux[k] ^= uu[k];
 
-            err = mz_crypt_hmac_copy(hmac1, hmac3);
+			if (err == MZ_OK)
+            	err = mz_crypt_hmac_copy(hmac1, hmac3);
             if (err != MZ_OK)
                 break;
         }

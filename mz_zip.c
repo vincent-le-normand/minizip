@@ -121,6 +121,8 @@ static int32_t mz_zip_search_eocd(void *stream, int64_t *central_pos)
     int32_t err = MZ_OK;
 
     err = mz_stream_seek(stream, 0, MZ_SEEK_END);
+	if (err != MZ_OK)
+		return err;
 
     file_size = mz_stream_tell(stream);
 
@@ -493,7 +495,7 @@ static int32_t mz_zip_entry_write_header(void *stream, uint8_t local, mz_zip_fil
     uint16_t field_length = 0;
     uint16_t field_length_zip64 = 0;
     uint16_t field_length_ntfs = 0;
-    uint16_t field_length_aes = 0;
+//    uint16_t field_length_aes = 0;
     uint16_t filename_size = 0;
     uint16_t filename_length = 0;
     uint16_t version_needed = 0;

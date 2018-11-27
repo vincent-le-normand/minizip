@@ -455,7 +455,7 @@ int32_t mz_crypt_sign(uint8_t *message, int32_t message_size, uint8_t *cert_data
             
         if (status == errSecSuccess)
         {
-            *signature_size = CFDataGetLength(signature_out);
+            *signature_size = (int32_t)CFDataGetLength(signature_out);
             *signature = (uint8_t *)MZ_ALLOC(*signature_size);
                 
             memcpy(*signature, CFDataGetBytePtr(signature_out), *signature_size);
