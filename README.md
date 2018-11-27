@@ -1,4 +1,4 @@
-# minizip 2.7.5
+# minizip 2.8.0
 
 minizip is a zip manipulation library written in C that is supported on Windows, macOS, and Linux. 
 
@@ -73,7 +73,7 @@ cmake --build .
 | USE_BZIP2 | Enables BZIP2 compression | ON |
 | USE_LZMA | Enables LZMA compression | ON |
 | USE_PKCRYPT | Enables PKWARE traditional encryption | ON |
-| USE_AES | Enables WinZIP AES encryption | ON |
+| USE_WZAES | Enables WinZIP AES encryption | ON |
 | USE_LIBCOMP | Enables Apple compression | OFF |
 | USE_OPENSSL | Enables OpenSSL encryption | OFF |
 | USE_BRG | Enables Brian Gladman's library | OFF |
