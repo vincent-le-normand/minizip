@@ -1,5 +1,5 @@
 /* mz_strm.c -- Stream interface
-   Version 2.7.5, November 13, 2018
+   Version 2.8.0, November 24, 2018
    part of the MiniZip project
 
    Copyright (C) 2010-2018 Nathan Moinvaziri
@@ -8,10 +8,6 @@
    This program is distributed under the terms of the same license as zlib.
    See the accompanying LICENSE file for the full text of the license.
 */
-
-#include <stdlib.h>
-#include <stdint.h>
-#include <string.h>
 
 #include "mz.h"
 #include "mz_strm.h"
@@ -139,7 +135,7 @@ static int32_t mz_stream_write_value(void *stream, uint64_t value, int32_t len)
 
     if (value != 0)
     {
-        // Data overflow - hack for ZIP64 (X Roche)
+        /* Data overflow - hack for ZIP64 (X Roche) */
         for (n = 0; n < len; n += 1)
             buf[n] = 0xff;
     }
@@ -173,14 +169,6 @@ int32_t mz_stream_write_int64(void *stream, int64_t value)
 int32_t mz_stream_write_uint64(void *stream, uint64_t value)
 {
     return mz_stream_write_value(stream, value, sizeof(uint64_t));
-}
-
-int32_t mz_stream_write_chars(void *stream, const char *value, uint8_t null_terminate)
-{
-    int32_t len = (int32_t)strlen(value);
-    if (null_terminate)
-        len += 1;
-    return mz_stream_write(stream, value, len);
 }
 
 int32_t mz_stream_copy(void *target, void *source, int32_t len)
@@ -235,6 +223,8 @@ int32_t mz_stream_seek(void *stream, int64_t offset, int32_t origin)
         return MZ_PARAM_ERROR;
     if (mz_stream_is_open(stream) != MZ_OK)
         return MZ_STREAM_ERROR;
+    if (origin == MZ_SEEK_SET && offset < 0)
+        return MZ_SEEK_ERROR;
     return strm->vtbl->seek(strm, offset, origin);
 }
 
@@ -276,7 +266,7 @@ int32_t mz_stream_find(void *stream, const void *find, int32_t find_size, int64_
 
             disk_pos = mz_stream_tell(stream);
 
-            // Seek to position on disk where the data was found
+            /* Seek to position on disk where the data was found */
             err = mz_stream_seek(stream, disk_pos - (read + buf_pos - i), MZ_SEEK_SET);
             if (err != MZ_OK)
                 return MZ_EXIST_ERROR;
@@ -342,7 +332,7 @@ int32_t mz_stream_find_reverse(void *stream, const void *find, int32_t find_size
             
             disk_pos = mz_stream_tell(stream);
 
-            // Seek to position on disk where the data was found
+            /* Seek to position on disk where the data was found */
             err = mz_stream_seek(stream, disk_pos + buf_pos - i, MZ_SEEK_SET);
             if (err != MZ_OK)
                 return MZ_EXIST_ERROR;
@@ -472,7 +462,7 @@ int32_t mz_stream_raw_read(void *stream, void *buf, int32_t size)
 
     if (raw->max_total_in > 0)
     {
-        if ((raw->max_total_in - raw->total_in) < size)
+        if ((int64_t)bytes_to_read > (raw->max_total_in - raw->total_in))
             bytes_to_read = (int32_t)(raw->max_total_in - raw->total_in);
     }
 

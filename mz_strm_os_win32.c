@@ -1,5 +1,5 @@
 /* mz_strm_win32.c -- Stream for filesystem access for windows
-   Version 2.7.5, November 13, 2018
+   Version 2.8.0, November 24, 2018
    part of the MiniZip project
 
    Copyright (C) 2010-2018 Nathan Moinvaziri
@@ -14,14 +14,13 @@
    See the accompanying LICENSE file for the full text of the license.
 */
 
-#include <stdlib.h>
-
-#include <windows.h>
 
 #include "mz.h"
 #include "mz_os.h"
 #include "mz_strm.h"
 #include "mz_strm_os.h"
+
+#include <windows.h>
 
 /***************************************************************************/
 
@@ -88,7 +87,7 @@ int32_t mz_stream_os_open(void *stream, const char *path, int32_t mode)
     if (path == NULL)
         return MZ_PARAM_ERROR;
 
-    // Some use cases require write sharing as well
+    /* Some use cases require write sharing as well */
     share_mode |= FILE_SHARE_WRITE;
 
     if ((mode & MZ_OPEN_MODE_READWRITE) == MZ_OPEN_MODE_READ)
@@ -111,7 +110,7 @@ int32_t mz_stream_os_open(void *stream, const char *path, int32_t mode)
         return MZ_PARAM_ERROR;
     }
 
-    mz_stream_os_print("Win32 - Open - %s (mode %d)\n", path);
+    mz_stream_os_print("Win32 - Open - %s (mode %"PRId32")\n", path);
 
     path_wide = mz_os_unicode_string_create(path, MZ_ENCODING_UTF8);
     if (path_wide == NULL)
@@ -162,7 +161,7 @@ int32_t mz_stream_os_read(void *stream, void *buf, int32_t size)
             win32->error = 0;
     }
 
-    mz_stream_os_print("Win32 - Read - %d\n", read);
+    mz_stream_os_print("Win32 - Read - %"PRId32"\n", read);
 
     return read;
 }
@@ -182,7 +181,7 @@ int32_t mz_stream_os_write(void *stream, const void *buf, int32_t size)
             win32->error = 0;
     }
 
-    mz_stream_os_print("Win32 - Write - %d\n", written);
+    mz_stream_os_print("Win32 - Write - %"PRId32"\n", written);
 
     return written;
 }
@@ -225,7 +224,7 @@ int64_t mz_stream_os_tell(void *stream)
     if (mz_stream_os_seekinternal(win32->handle, large_pos, &large_pos, FILE_CURRENT) != MZ_OK)
         win32->error = GetLastError();
 
-    mz_stream_os_print("Win32 - Tell - %lld\n", large_pos.QuadPart);
+    mz_stream_os_print("Win32 - Tell - %"PRId64"\n", large_pos.QuadPart);
 
     return large_pos.QuadPart;
 }
@@ -256,7 +255,7 @@ int32_t mz_stream_os_seek(void *stream, int64_t offset, int32_t origin)
             return MZ_SEEK_ERROR;
     }
 
-    mz_stream_os_print("Win32 - Seek - %lld (origin %d)\n", offset, origin);
+    mz_stream_os_print("Win32 - Seek - %"PRId64" (origin %"PRId32")\n", offset, origin);
 
     large_pos.QuadPart = offset;
 

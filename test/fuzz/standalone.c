@@ -1,5 +1,5 @@
-/* minizip.c
-   Version 2.7.5, November 13, 2018
+/* standalone.c - Standalone fuzzer tester
+   Version 2.8.0, November 24, 2018
    part of the MiniZip project
 
    Copyright (C) 2018 sebpop
@@ -11,14 +11,12 @@
    See the accompanying LICENSE file for the full text of the license.
 */
 
-#include <stdlib.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <string.h>
 
 #include "mz.h"
 #include "mz_strm.h"
 #include "mz_strm_os.h"
+
+#include <stdio.h> /* printf */
 
 #ifdef __cplusplus
 extern "C" {
@@ -40,7 +38,14 @@ int main(int argc, char **argv)
     int32_t read = 0;
     int32_t i = 0;
 
-    printf("Running %d inputs\n", argc - 1);
+
+    if (argc < 1)
+    {
+        printf("Must specify an input file\n");
+        return 1;
+    }
+
+    printf("Running %"PRId32" inputs\n", argc - 1);
 
     for (i = 1; (i < argc) && (err == MZ_OK); i++)
     {
@@ -51,24 +56,24 @@ int main(int argc, char **argv)
 
         if (err != MZ_OK)
         {
-            printf("Skipping %s (%d)\n", argv[i], err);
+            printf("Skipping %s (%"PRId32")\n", argv[i], err);
         }    
         else
         {
-            mz_stream_os_seek(stream, 0, SEEK_END);
+            mz_stream_os_seek(stream, 0, MZ_SEEK_END);
             file_size = mz_stream_os_tell(stream);
             if (file_size > INT32_MAX)
-                printf("File size is too large (%lld)\n", file_size);
+                printf("File size is too large (%"PRId64")\n", file_size);
             else
                 buf_length = (int32_t)file_size;
-            mz_stream_os_seek(stream, 0, SEEK_SET);
+            mz_stream_os_seek(stream, 0, MZ_SEEK_SET);
 
             if (buf_length > 0)
                 buf = MZ_ALLOC(buf_length);
 
             if (buf != NULL)
             {
-                printf("Running %s %d\n", argv[i], buf_length);
+                printf("Running %s %"PRId32"\n", argv[i], buf_length);
                 read = mz_stream_os_read(stream, buf, buf_length);
                 if (read == buf_length)
                     LLVMFuzzerTestOneInput(buf, buf_length);
@@ -82,7 +87,7 @@ int main(int argc, char **argv)
         }
 
         mz_stream_os_delete(&stream);
-        printf("Done %s (%d)\n", argv[i], err);
+        printf("Done %s (%"PRId32")\n", argv[i], err);
     }
 
     return 0;
