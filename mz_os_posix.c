@@ -35,7 +35,7 @@ uint8_t *mz_os_utf8_string_create(const char *string, int32_t encoding)
 {
     iconv_t cd;
     const char *from_encoding = NULL;
-    int32_t result = 0;
+    size_t result = 0;
     size_t string_length = 0;
     size_t string_utf8_size = 0;
     uint8_t *string_utf8 = NULL;
