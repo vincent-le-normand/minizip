@@ -70,7 +70,7 @@ uint8_t *mz_os_utf8_string_create(const char *string, int32_t encoding)
     {
         memset(string_utf8, 0, string_utf8_size + 1);
 
-        result = iconv(cd, (char **)&string, &string_length,
+        result = (int32_t)iconv(cd, (char **)&string, &string_length,
                 (char **)&string_utf8_ptr, &string_utf8_size);
 
         iconv_close(cd);
