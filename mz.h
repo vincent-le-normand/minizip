@@ -1,8 +1,8 @@
 /* mz.h -- Errors codes, zip flags and magic
-   Version 2.8.0, November 24, 2018
+   Version 2.9.1, November 15, 2019
    part of the MiniZip project
 
-   Copyright (C) 2010-2018 Nathan Moinvaziri
+   Copyright (C) 2010-2019 Nathan Moinvaziri
      https://github.com/nmoinvaz/minizip
 
    This program is distributed under the terms of the same license as zlib.
@@ -15,7 +15,7 @@
 /***************************************************************************/
 
 /* MZ_VERSION */
-#define MZ_VERSION                      ("2.8.0")
+#define MZ_VERSION                      ("2.9.1")
 
 /* MZ_ERROR */
 #define MZ_OK                           (0)  /* zlib */
@@ -44,6 +44,7 @@
 #define MZ_READ_ERROR                   (-115)
 #define MZ_WRITE_ERROR                  (-116)
 #define MZ_SIGN_ERROR                   (-117)
+#define MZ_SYMLINK_ERROR                (-118)
 
 /* MZ_OPEN */
 #define MZ_OPEN_MODE_READ               (0x01)
@@ -101,6 +102,7 @@
 #define MZ_HOST_SYSTEM_MSDOS            (0)
 #define MZ_HOST_SYSTEM_UNIX             (3)
 #define MZ_HOST_SYSTEM_WINDOWS_NTFS     (10)
+#define MZ_HOST_SYSTEM_RISCOS           (13)
 #define MZ_HOST_SYSTEM_OSX_DARWIN       (19)
 
 /* MZ_PKCRYPT */
@@ -143,6 +145,12 @@
 #define MZ_FREE(PTR)                    (free(PTR))
 #endif
 
+#if defined(_WINDOWS) && defined(MZ_EXPORTS)
+#define MZ_EXPORT __declspec(dllexport)
+#else
+#define MZ_EXPORT
+#endif
+
 /***************************************************************************/
 
 #include <stdlib.h> /* size_t, NULL, malloc */
@@ -152,32 +160,70 @@
 
 #ifdef HAVE_STDINT_H
 #  include <stdint.h>
-#else
+#endif
+
+#ifndef __INT8_TYPE__
 typedef signed char        int8_t;
+#endif
+#ifndef __INT16_TYPE__
 typedef short              int16_t;
+#endif
+#ifndef __INT32_TYPE__
 typedef int                int32_t;
+#endif
+#ifndef __INT64_TYPE__
 typedef long long          int64_t;
+#endif
+#ifndef __UINT8_TYPE__
 typedef unsigned char      uint8_t;
+#endif
+#ifndef __UINT16_TYPE__
 typedef unsigned short     uint16_t;
+#endif
+#ifndef __UINT32_TYPE__
 typedef unsigned int       uint32_t;
+#endif
+#ifndef __UINT64_TYPE__
 typedef unsigned long long uint64_t;
 #endif
 
 #ifdef HAVE_INTTYPES_H
 #  include <inttypes.h>
-#else
+#endif
+
+#ifndef PRId8
 #  define PRId8  "hhd"
+#endif
+#ifndef PRId16
 #  define PRId16 "hd"
+#endif
+#ifndef PRId32
 #  define PRId32 "d"
+#endif
+#ifndef PRIu32
 #  define PRIu32 "u"
+#endif
+#ifndef PRIx32
 #  define PRIx32 "x"
-#  if ULONG_MAX == 4294967295UL
+#endif
+#if ULONG_MAX == 4294967295UL
+#  ifndef PRId64
 #    define PRId64 "lld"
+#  endif
+#  ifndef PRIu64
 #    define PRIu64 "llu"
+#  endif
+#  ifndef PRIx64
 #    define PRIx64 "llx"
-#  else
+#  endif
+#else
+#  ifndef PRId64
 #    define PRId64 "ld"
+#  endif
+#  ifndef PRIu64
 #    define PRIu64 "lu"
+#  endif
+#  ifndef PRIx64
 #    define PRIx64 "lx"
 #  endif
 #endif
@@ -185,7 +231,7 @@ typedef unsigned long long uint64_t;
 #ifndef INT16_MAX
 #  define INT16_MAX   32767
 #endif
-#ifndef INT32_MAX 
+#ifndef INT32_MAX
 #  define INT32_MAX   2147483647L
 #endif
 #ifndef INT64_MAX
@@ -194,8 +240,8 @@ typedef unsigned long long uint64_t;
 #ifndef UINT16_MAX
 #  define UINT16_MAX  65535U
 #endif
-#ifndef UINT32_MAX 
-#  define UINT32_MAX  4294967295UL 
+#ifndef UINT32_MAX
+#  define UINT32_MAX  4294967295UL
 #endif
 #ifndef UINT64_MAX
 #  define UINT64_MAX  18446744073709551615ULL

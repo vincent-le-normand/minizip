@@ -1,8 +1,8 @@
 /* mz_strm.c -- Stream interface
-   Version 2.8.0, November 24, 2018
+   Version 2.9.1, November 15, 2019
    part of the MiniZip project
 
-   Copyright (C) 2010-2018 Nathan Moinvaziri
+   Copyright (C) 2010-2019 Nathan Moinvaziri
      https://github.com/nmoinvaz/minizip
 
    This program is distributed under the terms of the same license as zlib.
@@ -176,7 +176,12 @@ int32_t mz_stream_copy(void *target, void *source, int32_t len)
     return mz_stream_copy_stream(target, NULL, source, NULL, len);
 }
 
-int32_t mz_stream_copy_stream(void *target, mz_stream_write_cb write_cb, void *source, 
+int32_t mz_stream_copy_to_end(void *target, void *source)
+{
+    return mz_stream_copy_stream_to_end(target, NULL, source, NULL);
+}
+
+int32_t mz_stream_copy_stream(void *target, mz_stream_write_cb write_cb, void *source,
     mz_stream_read_cb read_cb, int32_t len)
 {
     uint8_t buf[16384];
@@ -202,6 +207,33 @@ int32_t mz_stream_copy_stream(void *target, mz_stream_write_cb write_cb, void *s
             return MZ_STREAM_ERROR;
         len -= read;
     }
+
+    return MZ_OK;
+}
+
+int32_t mz_stream_copy_stream_to_end(void *target, mz_stream_write_cb write_cb, void *source,
+    mz_stream_read_cb read_cb)
+{
+    uint8_t buf[16384];
+    int32_t read = 0;
+    int32_t written = 0;
+
+    if (write_cb == NULL)
+        write_cb = mz_stream_write;
+    if (read_cb == NULL)
+        read_cb = mz_stream_read;
+
+    read = read_cb(source, buf, sizeof(buf));
+    while (read > 0)
+    {
+        written = write_cb(target, buf, read);
+        if (written != read)
+            return MZ_STREAM_ERROR;
+        read = read_cb(source, buf, sizeof(buf));
+    }
+
+    if (read < 0)
+        return MZ_STREAM_ERROR;
 
     return MZ_OK;
 }
@@ -252,11 +284,11 @@ int32_t mz_stream_find(void *stream, const void *find, int32_t find_size, int64_
 
     while (read_pos < max_seek)
     {
-        if (read_size > (int32_t)(max_seek - read_pos - buf_pos))
+        if (read_size > (int32_t)(max_seek - read_pos - buf_pos) && (max_seek - read_pos - buf_pos) < (int64_t)sizeof(buf))
             read_size = (int32_t)(max_seek - read_pos - buf_pos);
 
         read = mz_stream_read(stream, buf + buf_pos, read_size);
-        if ((read < 0) || (read + buf_pos < find_size))
+        if ((read <= 0) || (read + buf_pos < find_size))
             break;
 
         for (i = 0; i <= read + buf_pos - find_size; i += 1)
@@ -267,7 +299,7 @@ int32_t mz_stream_find(void *stream, const void *find, int32_t find_size, int64_
             disk_pos = mz_stream_tell(stream);
 
             /* Seek to position on disk where the data was found */
-            err = mz_stream_seek(stream, disk_pos - (read + buf_pos - i), MZ_SEEK_SET);
+            err = mz_stream_seek(stream, disk_pos - ((int64_t)read + buf_pos - i), MZ_SEEK_SET);
             if (err != MZ_OK)
                 return MZ_EXIST_ERROR;
 
@@ -314,13 +346,13 @@ int32_t mz_stream_find_reverse(void *stream, const void *find, int32_t find_size
 
     while (read_pos < max_seek)
     {
-        if (read_size > (int32_t)(max_seek - read_pos))
+        if (read_size > (int32_t)(max_seek - read_pos) && (max_seek - read_pos) < (int64_t)sizeof(buf))
             read_size = (int32_t)(max_seek - read_pos);
- 
+
         if (mz_stream_seek(stream, start_pos - (read_pos + read_size), MZ_SEEK_SET) != MZ_OK)
             break;
         read = mz_stream_read(stream, buf, read_size);
-        if ((read < 0) || (read + buf_pos < find_size))
+        if ((read <= 0) || (read + buf_pos < find_size))
             break;
         if (read + buf_pos < MZ_STREAM_FIND_SIZE)
             memmove(buf + MZ_STREAM_FIND_SIZE - (read + buf_pos), buf, read);
@@ -329,7 +361,7 @@ int32_t mz_stream_find_reverse(void *stream, const void *find, int32_t find_size
         {
             if (memcmp(&buf[MZ_STREAM_FIND_SIZE - i], find, find_size) != 0)
                 continue;
-            
+
             disk_pos = mz_stream_tell(stream);
 
             /* Seek to position on disk where the data was found */
@@ -469,7 +501,10 @@ int32_t mz_stream_raw_read(void *stream, void *buf, int32_t size)
     read = mz_stream_read(raw->stream.base, buf, bytes_to_read);
 
     if (read > 0)
+    {
         raw->total_in += read;
+        raw->total_out += read;
+    }
 
     return read;
 }
@@ -477,9 +512,16 @@ int32_t mz_stream_raw_read(void *stream, void *buf, int32_t size)
 int32_t mz_stream_raw_write(void *stream, const void *buf, int32_t size)
 {
     mz_stream_raw *raw = (mz_stream_raw *)stream;
-    int32_t written = mz_stream_write(raw->stream.base, buf, size);
+    int32_t written = 0;
+
+    written = mz_stream_write(raw->stream.base, buf, size);
+
     if (written > 0)
+    {
         raw->total_out += written;
+        raw->total_in += written;
+    }
+
     return written;
 }
 
@@ -498,7 +540,6 @@ int32_t mz_stream_raw_seek(void *stream, int64_t offset, int32_t origin)
 int32_t mz_stream_raw_close(void *stream)
 {
     MZ_UNUSED(stream);
-
     return MZ_OK;
 }
 

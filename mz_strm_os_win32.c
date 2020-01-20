@@ -1,8 +1,8 @@
 /* mz_strm_win32.c -- Stream for filesystem access for windows
-   Version 2.8.0, November 24, 2018
+   Version 2.9.1, November 15, 2019
    part of the MiniZip project
 
-   Copyright (C) 2010-2018 Nathan Moinvaziri
+   Copyright (C) 2010-2019 Nathan Moinvaziri
      https://github.com/nmoinvaz/minizip
    Copyright (C) 2009-2010 Mathias Svensson
      Modifications for Zip64 support
@@ -110,17 +110,17 @@ int32_t mz_stream_os_open(void *stream, const char *path, int32_t mode)
         return MZ_PARAM_ERROR;
     }
 
-    mz_stream_os_print("Win32 - Open - %s (mode %"PRId32")\n", path);
+    mz_stream_os_print("Win32 - Open - %s (mode %" PRId32 ")\n", path);
 
     path_wide = mz_os_unicode_string_create(path, MZ_ENCODING_UTF8);
     if (path_wide == NULL)
         return MZ_PARAM_ERROR;
 
 #ifdef MZ_WINRT_API
-    win32->handle = CreateFile2W(path_wide, desired_access, share_mode, 
+    win32->handle = CreateFile2W(path_wide, desired_access, share_mode,
         creation_disposition, NULL);
 #else
-    win32->handle = CreateFileW(path_wide, desired_access, share_mode, NULL, 
+    win32->handle = CreateFileW(path_wide, desired_access, share_mode, NULL,
         creation_disposition, flags_attribs, NULL);
 #endif
 
@@ -161,7 +161,7 @@ int32_t mz_stream_os_read(void *stream, void *buf, int32_t size)
             win32->error = 0;
     }
 
-    mz_stream_os_print("Win32 - Read - %"PRId32"\n", read);
+    mz_stream_os_print("Win32 - Read - %" PRId32 "\n", read);
 
     return read;
 }
@@ -181,12 +181,12 @@ int32_t mz_stream_os_write(void *stream, const void *buf, int32_t size)
             win32->error = 0;
     }
 
-    mz_stream_os_print("Win32 - Write - %"PRId32"\n", written);
+    mz_stream_os_print("Win32 - Write - %" PRId32 "\n", written);
 
     return written;
 }
 
-static int32_t mz_stream_os_seekinternal(HANDLE handle, LARGE_INTEGER large_pos, 
+static int32_t mz_stream_os_seekinternal(HANDLE handle, LARGE_INTEGER large_pos,
     LARGE_INTEGER *new_pos, uint32_t move_method)
 {
 #ifdef MZ_WINRT_API
@@ -224,7 +224,7 @@ int64_t mz_stream_os_tell(void *stream)
     if (mz_stream_os_seekinternal(win32->handle, large_pos, &large_pos, FILE_CURRENT) != MZ_OK)
         win32->error = GetLastError();
 
-    mz_stream_os_print("Win32 - Tell - %"PRId64"\n", large_pos.QuadPart);
+    mz_stream_os_print("Win32 - Tell - %" PRId64 "\n", large_pos.QuadPart);
 
     return large_pos.QuadPart;
 }
@@ -255,7 +255,7 @@ int32_t mz_stream_os_seek(void *stream, int64_t offset, int32_t origin)
             return MZ_SEEK_ERROR;
     }
 
-    mz_stream_os_print("Win32 - Seek - %"PRId64" (origin %"PRId32")\n", offset, origin);
+    mz_stream_os_print("Win32 - Seek - %" PRId64 " (origin %" PRId32 ")\n", offset, origin);
 
     large_pos.QuadPart = offset;
 

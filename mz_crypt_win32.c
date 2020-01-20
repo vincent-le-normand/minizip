@@ -1,8 +1,8 @@
 /* mz_crypt_win32.c -- Crypto/hash functions for Windows
-   Version 2.8.0, November 24, 2018
+   Version 2.9.1, November 15, 2019
    part of the MiniZip project
 
-   Copyright (C) 2010-2018 Nathan Moinvaziri
+   Copyright (C) 2010-2019 Nathan Moinvaziri
      https://github.com/nmoinvaz/minizip
 
    This program is distributed under the terms of the same license as zlib.
@@ -252,9 +252,9 @@ static int32_t mz_crypt_aes_set_key(void *handle, const void *key, int32_t key_l
 
     if (aes == NULL || key == NULL)
         return MZ_PARAM_ERROR;
-    
+
     mz_crypt_aes_reset(handle);
-    
+
     if (key_length == MZ_AES_KEY_LENGTH(MZ_AES_ENCRYPTION_MODE_128))
         alg_id = CALG_AES_128;
     else if (key_length == MZ_AES_KEY_LENGTH(MZ_AES_ENCRYPTION_MODE_192))
@@ -263,34 +263,41 @@ static int32_t mz_crypt_aes_set_key(void *handle, const void *key, int32_t key_l
         alg_id = CALG_AES_256;
     else
         return MZ_PARAM_ERROR;
-    
+
     result = CryptAcquireContext(&aes->provider, NULL, MS_ENH_RSA_AES_PROV, PROV_RSA_AES, CRYPT_VERIFYCONTEXT | CRYPT_SILENT);
     if (result)
     {
         key_blob_size = sizeof(key_blob_header_s) + key_length;
         key_blob = (uint8_t *)MZ_ALLOC(key_blob_size);
+        if (key_blob)
+        {
+            key_blob_s = (key_blob_header_s *)key_blob;
+            key_blob_s->hdr.bType = PLAINTEXTKEYBLOB;
+            key_blob_s->hdr.bVersion = CUR_BLOB_VERSION;
+            key_blob_s->hdr.aiKeyAlg = alg_id;
+            key_blob_s->hdr.reserved = 0;
+            key_blob_s->key_length = key_length;
 
-        key_blob_s = (key_blob_header_s *)key_blob;
-        key_blob_s->hdr.bType = PLAINTEXTKEYBLOB;
-        key_blob_s->hdr.bVersion = CUR_BLOB_VERSION;
-        key_blob_s->hdr.aiKeyAlg = alg_id;
-        key_blob_s->hdr.reserved = 0;
-        key_blob_s->key_length = key_length;
+            memcpy(key_blob + sizeof(key_blob_header_s), key, key_length);
 
-        memcpy(key_blob + sizeof(key_blob_header_s), key, key_length);
+            result = CryptImportKey(aes->provider, key_blob, key_blob_size, 0, 0, &aes->key);
 
-        result = CryptImportKey(aes->provider, key_blob, key_blob_size, 0, 0, &aes->key);
+            MZ_FREE(key_blob);
+        }
+        else
+        {
+            err = MZ_MEM_ERROR;
+        }
     }
 
-    if (result)
+    if (result && err == MZ_OK)
         result = CryptSetKeyParam(aes->key, KP_MODE, (const uint8_t *)&mode, 0);
 
-    if (!result)
+    if (!result && err == MZ_OK)
     {
         aes->error = GetLastError();
         err = MZ_CRYPT_ERROR;
     }
-    MZ_FREE(key_blob);
 
     if (hash)
         CryptDestroyHash(hash);
@@ -392,9 +399,9 @@ int32_t mz_crypt_hmac_init(void *handle, const void *key, int32_t key_length)
 
     if (hmac == NULL || key == NULL)
         return MZ_PARAM_ERROR;
-    
+
     mz_crypt_hmac_reset(handle);
-    
+
     if (hmac->algorithm == MZ_HASH_SHA1)
         alg_id = CALG_SHA1;
     else
@@ -402,7 +409,7 @@ int32_t mz_crypt_hmac_init(void *handle, const void *key, int32_t key_length)
 
     hmac->info.HashAlgid = alg_id;
 
-    result = CryptAcquireContext(&hmac->provider, NULL, MS_ENHANCED_PROV, PROV_RSA_FULL, 
+    result = CryptAcquireContext(&hmac->provider, NULL, MS_ENHANCED_PROV, PROV_RSA_FULL,
         CRYPT_VERIFYCONTEXT | CRYPT_SILENT);
 
     if (!result)
@@ -410,31 +417,41 @@ int32_t mz_crypt_hmac_init(void *handle, const void *key, int32_t key_length)
         hmac->error = GetLastError();
         err = MZ_CRYPT_ERROR;
     }
+    else
+    {
+        key_blob_size = sizeof(key_blob_header_s) + key_length;
+        key_blob = (uint8_t *)MZ_ALLOC(key_blob_size);
+    }
 
-    key_blob_size = sizeof(key_blob_header_s) + key_length;
-    key_blob = (uint8_t *)MZ_ALLOC(key_blob_size);
+    if (key_blob)
+    {
+        key_blob_s = (key_blob_header_s *)key_blob;
+        key_blob_s->hdr.bType = PLAINTEXTKEYBLOB;
+        key_blob_s->hdr.bVersion = CUR_BLOB_VERSION;
+        key_blob_s->hdr.aiKeyAlg = CALG_RC2;
+        key_blob_s->hdr.reserved = 0;
+        key_blob_s->key_length = key_length;
 
-    key_blob_s = (key_blob_header_s *)key_blob;
-    key_blob_s->hdr.bType = PLAINTEXTKEYBLOB;
-    key_blob_s->hdr.bVersion = CUR_BLOB_VERSION;
-    key_blob_s->hdr.aiKeyAlg = CALG_RC2;
-    key_blob_s->hdr.reserved = 0;
-    key_blob_s->key_length = key_length;
+        memcpy(key_blob + sizeof(key_blob_header_s), key, key_length);
 
-    memcpy(key_blob + sizeof(key_blob_header_s), key, key_length);
-    
-    result = CryptImportKey(hmac->provider, key_blob, key_blob_size, 0, CRYPT_IPSEC_HMAC_KEY, &hmac->key);
-    if (result)
-        result = CryptCreateHash(hmac->provider, CALG_HMAC, hmac->key, 0, &hmac->hash);
-    if (result)
-        result = CryptSetHashParam(hmac->hash, HP_HMAC_INFO, (uint8_t *)&hmac->info, 0);
+        result = CryptImportKey(hmac->provider, key_blob, key_blob_size, 0, CRYPT_IPSEC_HMAC_KEY, &hmac->key);
+        if (result)
+            result = CryptCreateHash(hmac->provider, CALG_HMAC, hmac->key, 0, &hmac->hash);
+        if (result)
+            result = CryptSetHashParam(hmac->hash, HP_HMAC_INFO, (uint8_t *)&hmac->info, 0);
+
+        MZ_FREE(key_blob);
+    }
+    else if (err == MZ_OK)
+    {
+        err = MZ_MEM_ERROR;
+    }
+
     if (!result)
     {
         hmac->error = GetLastError();
         err = MZ_CRYPT_ERROR;
     }
-
-    MZ_FREE(key_blob);
 
     if (err != MZ_OK)
         mz_crypt_hmac_free(handle);
@@ -494,6 +511,12 @@ int32_t mz_crypt_hmac_copy(void *src_handle, void *target_handle)
     int32_t result = 0;
     int32_t err = MZ_OK;
 
+    if (target->hash)
+    {
+        CryptDestroyHash(target->hash);
+        target->hash = 0;
+    }
+
     result = CryptDuplicateHash(source->hash, NULL, 0, &target->hash);
 
     if (!result)
@@ -501,7 +524,7 @@ int32_t mz_crypt_hmac_copy(void *src_handle, void *target_handle)
         target->error = GetLastError();
         err = MZ_HASH_ERROR;
     }
-    return MZ_OK;
+    return err;
 }
 
 void *mz_crypt_hmac_create(void **handle)
@@ -536,7 +559,8 @@ void mz_crypt_hmac_delete(void **handle)
 
 /***************************************************************************/
 
-int32_t mz_crypt_sign(uint8_t *message, int32_t message_size, uint8_t *cert_data, int32_t cert_data_size, 
+#if defined(MZ_ZIP_SIGNING)
+int32_t mz_crypt_sign(uint8_t *message, int32_t message_size, uint8_t *cert_data, int32_t cert_data_size,
     const char *cert_pwd, uint8_t **signature, int32_t *signature_size)
 {
     CRYPT_SIGN_MESSAGE_PARA sign_params;
@@ -605,8 +629,8 @@ int32_t mz_crypt_sign(uint8_t *message, int32_t message_size, uint8_t *cert_data
             timestamp_url_wide = mz_os_unicode_string_create(timestamp_url);
         if (timestamp_url_wide != NULL)
         {
-            result = CryptRetrieveTimeStamp(timestamp_url_wide, 
-                TIMESTAMP_NO_AUTH_RETRIEVAL | TIMESTAMP_VERIFY_CONTEXT_SIGNATURE, 0, szOID_NIST_sha256, 
+            result = CryptRetrieveTimeStamp(timestamp_url_wide,
+                TIMESTAMP_NO_AUTH_RETRIEVAL | TIMESTAMP_VERIFY_CONTEXT_SIGNATURE, 0, szOID_NIST_sha256,
                 NULL, message, message_size, &ts_context, NULL, NULL);
 
             mz_os_unicode_string_delete(&timestamp_url_wide);
@@ -656,6 +680,11 @@ int32_t mz_crypt_sign(uint8_t *message, int32_t message_size, uint8_t *cert_data
 int32_t mz_crypt_sign_verify(uint8_t *message, int32_t message_size, uint8_t *signature, int32_t signature_size)
 {
     CRYPT_VERIFY_MESSAGE_PARA verify_params;
+    CERT_CONTEXT *signer_cert = NULL;
+    CERT_CHAIN_PARA  chain_para;
+    CERT_CHAIN_CONTEXT *chain_context = NULL;
+    CERT_CHAIN_POLICY_PARA chain_policy;
+    CERT_CHAIN_POLICY_STATUS chain_policy_status;
     HCRYPTMSG crypt_msg = 0;
     int32_t result = 0;
     int32_t err = MZ_SIGN_ERROR;
@@ -666,26 +695,43 @@ int32_t mz_crypt_sign_verify(uint8_t *message, int32_t message_size, uint8_t *si
     memset(&verify_params, 0, sizeof(verify_params));
 
     verify_params.cbSize = sizeof(verify_params);
-
     verify_params.dwMsgAndCertEncodingType = PKCS_7_ASN_ENCODING | X509_ASN_ENCODING;
-    verify_params.hCryptProv = 0;
-    verify_params.pfnGetSignerCertificate = NULL;
-    verify_params.pvGetArg = NULL;
-    
+
     result = CryptVerifyMessageSignature(&verify_params, 0, signature, signature_size,
         NULL, &decoded_size, NULL);
 
     if (result && decoded_size > 0)
         decoded = (uint8_t *)MZ_ALLOC(decoded_size);
 
-    if (result)
+    if (result && decoded != NULL)
         result = CryptVerifyMessageSignature(&verify_params, 0, signature, signature_size,
-            decoded, &decoded_size, NULL);
+            decoded, &decoded_size, &signer_cert);
 
+    /* Get and validate certificate chain */
+    memset(&chain_para, 0, sizeof(chain_para));
+
+    if (result && signer_cert != NULL)
+        result = CertGetCertificateChain(NULL, signer_cert, NULL, NULL, &chain_para,
+            CERT_CHAIN_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT, NULL, &chain_context);
+
+    memset(&chain_policy, 0, sizeof(chain_policy));
+    chain_policy.cbSize = sizeof(CERT_CHAIN_POLICY_PARA);
+
+    memset(&chain_policy_status, 0, sizeof(chain_policy_status));
+    chain_policy_status.cbSize = sizeof(CERT_CHAIN_POLICY_STATUS);
+
+    if (result && chain_context != NULL)
+        result = CertVerifyCertificateChainPolicy(CERT_CHAIN_POLICY_BASE, chain_context,
+            &chain_policy, &chain_policy_status);
+
+    if (chain_policy_status.dwError != S_OK)
+        result = 0;
+
+#if 0
     crypt_msg = CryptMsgOpenToDecode(PKCS_7_ASN_ENCODING | X509_ASN_ENCODING, 0, 0, 0, NULL, NULL);
     if (crypt_msg != NULL)
     {
-#if 0 /* Timestamp support */
+        /* Timestamp support */
         PCRYPT_ATTRIBUTES unauth_attribs = NULL;
         HCRYPTMSG ts_msg = 0;
         uint8_t *ts_content = NULL;
@@ -729,16 +775,24 @@ int32_t mz_crypt_sign_verify(uint8_t *message, int32_t message_size, uint8_t *si
 
         if (crypt_context != NULL)
             CryptMemFree(crypt_context);
-#endif
     }
+    else
+    {
+        result = 0;
+    }
+#endif
 
-    if ((crypt_msg != NULL) && (result) && (decoded_size == message_size))
+    if ((result) && (decoded != NULL) && (decoded_size == message_size))
     {
         /* Verify cms message with our stored message */
         if (memcmp(decoded, message, message_size) == 0)
             err = MZ_OK;
     }
 
+    if (chain_context != NULL)
+        CertFreeCertificateChain(chain_context);
+    if (signer_cert != NULL)
+        CertFreeCertificateContext(signer_cert);
     if (crypt_msg != NULL)
         CryptMsgClose(crypt_msg);
 
@@ -747,3 +801,4 @@ int32_t mz_crypt_sign_verify(uint8_t *message, int32_t message_size, uint8_t *si
 
     return err;
 }
+#endif

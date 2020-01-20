@@ -1,8 +1,8 @@
 /* mz_zip.h -- Zip manipulation
-   Version 2.8.0, November 24, 2018
+   Version 2.9.1, November 15, 2019
    part of the MiniZip project
 
-   Copyright (C) 2010-2018 Nathan Moinvaziri
+   Copyright (C) 2010-2019 Nathan Moinvaziri
      https://github.com/nmoinvaz/minizip
    Copyright (C) 2009-2010 Mathias Svensson
      Modifications for Zip64 support
@@ -42,15 +42,15 @@ typedef struct mz_zip_file_s
     int64_t  disk_offset;               /* relative offset of local header */
     uint16_t internal_fa;               /* internal file attributes */
     uint32_t external_fa;               /* external file attributes */
-    uint16_t zip64;                     /* zip64 extension mode */
-#ifdef HAVE_WZAES
-    uint16_t aes_version;               /* winzip aes extension if not 0 */
-    uint8_t  aes_encryption_mode;       /* winzip aes encryption mode */
-#endif
 
     const char     *filename;           /* filename utf8 null-terminated string */
     const uint8_t  *extrafield;         /* extrafield data */
     const char     *comment;            /* comment utf8 null-terminated string */
+    const char     *linkname;           /* sym-link filename utf8 null-terminated string */
+
+    uint16_t zip64;                     /* zip64 extension mode */
+    uint16_t aes_version;               /* winzip aes extension if not 0 */
+    uint8_t  aes_encryption_mode;       /* winzip aes encryption mode */
 
 } mz_zip_file, mz_zip_entry;
 
@@ -107,7 +107,7 @@ int32_t mz_zip_entry_read_open(void *handle, uint8_t raw, const char *password);
 int32_t mz_zip_entry_read(void *handle, void *buf, int32_t len);
 /* Read bytes from the current file in the zip file */
 
-int32_t mz_zip_entry_read_close(void *handle, uint32_t *crc32, int64_t *compressed_size, 
+int32_t mz_zip_entry_read_close(void *handle, uint32_t *crc32, int64_t *compressed_size,
     int64_t *uncompressed_size);
 /* Close the current file for reading and get data descriptor values */
 
@@ -118,12 +118,15 @@ int32_t mz_zip_entry_write_open(void *handle, const mz_zip_file *file_info,
 int32_t mz_zip_entry_write(void *handle, const void *buf, int32_t len);
 /* Write bytes from the current file in the zip file */
 
-int32_t mz_zip_entry_write_close(void *handle, uint32_t crc32, int64_t compressed_size, 
+int32_t mz_zip_entry_write_close(void *handle, uint32_t crc32, int64_t compressed_size,
     int64_t uncompressed_size);
 /* Close the current file for writing and set data descriptor values */
 
 int32_t mz_zip_entry_is_dir(void *handle);
 /* Checks to see if the entry is a directory */
+
+int32_t mz_zip_entry_is_symlink(void *handle);
+/* Checks to see if the entry is a symbolic link */
 
 int32_t mz_zip_entry_get_info(void *handle, mz_zip_file **file_info);
 /* Get info about the current file, only valid while current entry is open */
@@ -180,7 +183,10 @@ int32_t mz_zip_locate_next_entry(void *handle, void *userdata, mz_zip_locate_ent
 int32_t  mz_zip_attrib_is_dir(uint32_t attributes, uint16_t version_madeby);
 // Checks to see if the attribute is a directory based on platform
 
-int32_t mz_zip_attrib_convert(uint8_t src_sys, uint32_t src_attrib, uint8_t target_sys, 
+int32_t mz_zip_attrib_is_symlink(uint32_t attrib, int32_t version_madeby);
+/* Checks to see if the attribute is a symbolic link based on platform */
+
+int32_t mz_zip_attrib_convert(uint8_t src_sys, uint32_t src_attrib, uint8_t target_sys,
     uint32_t *target_attrib);
 /* Converts file attributes from one host system to another */
 

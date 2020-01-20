@@ -1,31 +1,32 @@
-# minizip 2.8.0
+# minizip 2.9.1
 
-minizip is a zip manipulation library written in C that is supported on Windows, macOS, and Linux. 
+minizip is a zip manipulation library written in C that is supported on Windows, macOS, and Linux.
 
+[![Master Branch Status](https://github.com/nmoinvaz/minizip/workflows/CI/badge.svg)](https://github.com/nmoinvaz/minizip/actions)
+[![Fuzzing Status](https://oss-fuzz-build-logs.storage.googleapis.com/badges/minizip.svg)](https://bugs.chromium.org/p/oss-fuzz/issues/list?sort=-opened&can=1&q=proj:minizip)
+[![CodeFactor](https://www.codefactor.io/repository/github/nmoinvaz/minizip/badge)](https://www.codefactor.io/repository/github/nmoinvaz/minizip)
 [![License: Zlib](https://img.shields.io/badge/license-zlib-lightgrey.svg)](https://github.com/nmoinvaz/minizip/blob/master/LICENSE)
+[![codecov.io](https://codecov.io/github/nmoinvaz/minizip/coverage.svg?branch=dev)](https://codecov.io/github/nmoinvaz/minizip/)
 
 Maintained by Nathan Moinvaziri.
 
 ## Branches
 
-| Name | State | Version | Description |
-|:- |:-:|:-:|:-|
-|[master](https://github.com/nmoinvaz/minizip/tree/master)|Active [![Master Branch Status](https://api.travis-ci.org/nmoinvaz/minizip.svg?branch=master)](https://travis-ci.org/nmoinvaz/minizip/branches)|2.x|Modern rewrite of 1.2 branch that includes more advanced features, improvements in code maintainability and readability, and the reduction of duplicate code. Compatibility layer provided for older versions.|
-|[dev](https://github.com/nmoinvaz/minizip/tree/dev)|Active [![Dev Branch Status](https://api.travis-ci.org/nmoinvaz/minizip.svg?branch=dev)](https://travis-ci.org/nmoinvaz/minizip/branches)|2.x|Latest development code|
-|[1.2](https://github.com/nmoinvaz/minizip/tree/1.2)|Stale| 1.x|Drop-in replacement for zlib's minizip that includes WinZip AES encryption, disk splitting, I/O buffering and some additional fixes.|
-|[1.1](https://github.com/nmoinvaz/minizip/tree/1.1)|Stale| 1.x|Original minizip as of zlib 1.2.11.|
+| Name | Description |
+|:- |:-|
+|[master](https://github.com/nmoinvaz/minizip/tree/master)|Modern rewrite that includes more advanced features, improvements in code maintainability and readability, and the reduction of duplicate code. Compatibility layer provided for older versions.|
+|[dev](https://github.com/nmoinvaz/minizip/tree/dev)|Latest development code|
+|[1.2](https://github.com/nmoinvaz/minizip/tree/1.2)|Drop-in replacement for zlib's minizip that includes WinZip AES encryption, disk splitting, I/O buffering and some additional fixes.|
+|[1.1](https://github.com/nmoinvaz/minizip/tree/1.1)|Original minizip as of zlib 1.2.11.|
 
 ## History
 
-Minizip was originally developed by [Gilles Vollant](https://www.winimage.com/zLibDll/minizip.html) and 
-had been contributed to by many people. As part of the zlib distribution, Mark Adler still maintains the
-original [minizip](https://github.com/madler/zlib/tree/master/contrib/minizip) project which is included in this repository as a reference.
+Minizip was originally developed by [Gilles Vollant](https://www.winimage.com/zLibDll/minizip.html) in 1998. It was first included in the zlib distribution as an additional code contribution starting in zlib 1.1.2. Since that time, it has been continually improved upon and contributed to by many people. The original [project](https://github.com/madler/zlib/tree/master/contrib/minizip) can still be found in the zlib distribution that is maintained by Mark Adler.
 
-My work with the minizip library began in 2006 when I started submitting bugs I found to 
-Gilles Vollant. In 2010, I implemented some additional features like WinZip AES encryption, disk splitting, and 
-I/O buffering that were necessary for another project I was working on. Shortly after, I created this public repository 
-so I could share these and other improvements with the rest of the world. I have been maintaining and actively 
-developing this code base ever since. At the beginning of 2017, I began the work to refactor and rewrite 
+My work with the minizip library started in 2006 when I fixed a few bugs I found and submitted them to
+Gilles Vollant. In 2010, I implemented WinZip AES encryption, disk splitting, and
+I/O buffering that were necessary for another project I was working on. Shortly after, I created this public repository
+so I could share my improvements with the community. In early 2017, I began the work to refactor and rewrite
 the library as version 2 because it had become difficult to maintain and code readability suffered over the years.
 
 ## Features
@@ -40,6 +41,7 @@ the library as version 2 because it had become difficult to maintain and code re
 + NTFS timestamp support for UTC last modified, last accessed, and creation dates.
 + Disk split support for splitting zip archives into multiple files.
 + Preservation of file attributes across file systems.
++ Follow and store symbolic links.
 + Unicode filename support through UTF-8 encoding.
 + Legacy character encoding support CP437, CP932, CP936, CP950.
 + Turn off compilation of compression, decompression, or encryption.
@@ -56,11 +58,11 @@ the library as version 2 because it had become difficult to maintain and code re
 
 To generate project files for your platform:
 
-1. [Download and install](https://cmake.org/install/) cmake.
+1. [Download and install](https://cmake.org/install/) cmake (version 3.11 or later recommended).
 2. Run cmake in the minizip directory.
 
 ```
-cmake . -DBUILD_TEST=ON
+cmake . -DMZ_BUILD_TEST=ON
 cmake --build .
 ```
 
@@ -68,20 +70,22 @@ cmake --build .
 
 | Name | Description | Default Value |
 |:- |:-|:-:|
-| USE_COMPAT | Enables compatibility layer | ON |
-| USE_ZLIB | Enables ZLIB compression | ON |
-| USE_BZIP2 | Enables BZIP2 compression | ON |
-| USE_LZMA | Enables LZMA compression | ON |
-| USE_PKCRYPT | Enables PKWARE traditional encryption | ON |
-| USE_WZAES | Enables WinZIP AES encryption | ON |
-| USE_LIBCOMP | Enables Apple compression | OFF |
-| USE_OPENSSL | Enables OpenSSL encryption | OFF |
-| USE_BRG | Enables Brian Gladman's library | OFF |
-| COMPRESS_ONLY | Only support compression | OFF |
-| DECOMPRESS_ONLY | Only support decompression | OFF |
-| BUILD_TEST | Builds minizip test executable | OFF |
-| BUILD_UNIT_TEST | Builds minizip unit test project | OFF |
-| BUILD_FUZZ_TEST | Builds minizip fuzz executables | OFF |
+| MZ_COMPAT | Enables compatibility layer | ON |
+| MZ_ZLIB | Enables ZLIB compression | ON |
+| MZ_BZIP2 | Enables BZIP2 compression | ON |
+| MZ_LZMA | Enables LZMA compression | ON |
+| MZ_PKCRYPT | Enables PKWARE traditional encryption | ON |
+| MZ_WZAES | Enables WinZIP AES encryption | ON |
+| MZ_LIBCOMP | Enables Apple compression | OFF |
+| MZ_OPENSSL | Enables OpenSSL encryption | OFF |
+| MZ_BRG | Enables Brian Gladman's library | OFF |
+| MZ_SIGNING | Enables zip signing support | ON |
+| MZ_COMPRESS_ONLY | Only support compression | OFF |
+| MZ_DECOMPRESS_ONLY | Only support decompression | OFF |
+| MZ_BUILD_TEST | Builds minizip test executable | OFF |
+| MZ_BUILD_UNIT_TEST | Builds minizip unit test project | OFF |
+| MZ_BUILD_FUZZ_TEST | Builds minizip fuzz executables | OFF |
+| MZ_CODE_COVERAGE | Build with code coverage flags | OFF |
 
 ## Contents
 
@@ -118,8 +122,8 @@ cmake --build .
 
 ## Acknowledgments
 
-Thanks to [Gilles Vollant](https://www.winimage.com/zLibDll/minizip.html) on which this work is originally based on. 
+Thanks go out to all the people who have taken the time to contribute code reviews, testing and/or patches. This project would not have been as good without you.
 
-Thanks go out to all the people who have taken the time to contribute code reviews, testing and/or patches. This project would not have been nearly as good without you.
+Thanks to [Gilles Vollant](https://www.winimage.com/zLibDll/minizip.html) on which this work is originally based on.
 
 The [ZIP format](https://github.com/nmoinvaz/minizip/blob/master/doc/appnote.txt) was defined by Phil Katz of PKWARE.

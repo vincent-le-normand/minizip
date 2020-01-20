@@ -5,7 +5,7 @@
 ///
 /// Calculate the CRC32 using the slice-by-eight algorithm.
 /// It is explained in this document:
-/// http://www.intel.com/technology/comms/perfnet/download/CRC_generators.pdf
+/// https://www.intel.com/technology/comms/perfnet/download/CRC_generators.pdf
 /// The code in this file is not the same as in Intel's paper, but
 /// the basic principle is identical.
 //
@@ -20,7 +20,7 @@
 #include "crc_macros.h"
 
 
-// If you make any changes, do some bench marking! Seemingly unrelated
+// If you make any changes, do some benchmarking! Seemingly unrelated
 // changes can very easily ruin the performance (and very probably is
 // very compiler dependent).
 extern LZMA_API(uint32_t)

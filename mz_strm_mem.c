@@ -1,5 +1,5 @@
 /* mz_strm_mem.c -- Stream for memory access
-   Version 2.8.0, November 24, 2018
+   Version 2.9.1, November 15, 2019
    part of the MiniZip project
 
    This interface is designed to access memory rather than files.
@@ -7,7 +7,7 @@
 
    Based on Unzip ioapi.c version 0.22, May 19th, 2003
 
-   Copyright (C) 2010-2018 Nathan Moinvaziri
+   Copyright (C) 2010-2019 Nathan Moinvaziri
      https://github.com/nmoinvaz/minizip
    Copyright (C) 2003 Justin Fletcher
    Copyright (C) 1998-2003 Gilles Vollant
@@ -53,7 +53,7 @@ typedef struct mz_stream_mem_s {
 
 /***************************************************************************/
 
-static void mz_stream_mem_set_size(void *stream, int32_t size)
+static int32_t mz_stream_mem_set_size(void *stream, int32_t size)
 {
     mz_stream_mem *mem = (mz_stream_mem *)stream;
     int32_t new_size = size;
@@ -61,6 +61,9 @@ static void mz_stream_mem_set_size(void *stream, int32_t size)
 
 
     new_buf = (uint8_t *)MZ_ALLOC((uint32_t)new_size);
+    if (new_buf == NULL)
+        return MZ_BUF_ERROR;
+
     if (mem->buffer)
     {
         memcpy(new_buf, mem->buffer, mem->size);
@@ -69,11 +72,13 @@ static void mz_stream_mem_set_size(void *stream, int32_t size)
 
     mem->buffer = new_buf;
     mem->size = new_size;
+    return MZ_OK;
 }
 
 int32_t mz_stream_mem_open(void *stream, const char *path, int32_t mode)
 {
     mz_stream_mem *mem = (mz_stream_mem *)stream;
+    int32_t err = MZ_OK;
 
     MZ_UNUSED(path);
 
@@ -82,11 +87,11 @@ int32_t mz_stream_mem_open(void *stream, const char *path, int32_t mode)
     mem->position = 0;
 
     if (mem->mode & MZ_OPEN_MODE_CREATE)
-        mz_stream_mem_set_size(stream, mem->grow_size);
+        err = mz_stream_mem_set_size(stream, mem->grow_size);
     else
         mem->limit = mem->size;
 
-    return MZ_OK;
+    return err;
 }
 
 int32_t mz_stream_mem_is_open(void *stream)
@@ -103,8 +108,10 @@ int32_t mz_stream_mem_read(void *stream, void *buf, int32_t size)
 
     if (size > mem->size - mem->position)
         size = mem->size - mem->position;
+    if (mem->position + size > mem->limit)
+        size = mem->limit - mem->position;
 
-    if ((size <= 0) || (mem->position + size > mem->limit))
+    if (size <= 0)
         return 0;
 
     memcpy(buf, mem->buffer + mem->position, size);
@@ -117,6 +124,7 @@ int32_t mz_stream_mem_write(void *stream, const void *buf, int32_t size)
 {
     mz_stream_mem *mem = (mz_stream_mem *)stream;
     int32_t new_size = 0;
+    int32_t err = MZ_OK;
 
     if (size == 0)
         return size;
@@ -131,7 +139,9 @@ int32_t mz_stream_mem_write(void *stream, const void *buf, int32_t size)
             else
                 new_size += size;
 
-            mz_stream_mem_set_size(stream, new_size);
+            err = mz_stream_mem_set_size(stream, new_size);
+            if (err != MZ_OK)
+                return err;
         }
         else
         {
@@ -158,6 +168,7 @@ int32_t mz_stream_mem_seek(void *stream, int64_t offset, int32_t origin)
 {
     mz_stream_mem *mem = (mz_stream_mem *)stream;
     int64_t new_pos = 0;
+    int32_t err = MZ_OK;
 
     switch (origin)
     {
@@ -179,7 +190,9 @@ int32_t mz_stream_mem_seek(void *stream, int64_t offset, int32_t origin)
         if ((mem->mode & MZ_OPEN_MODE_CREATE) == 0)
             return MZ_SEEK_ERROR;
 
-        mz_stream_mem_set_size(stream, (int32_t)new_pos);
+        err = mz_stream_mem_set_size(stream, (int32_t)new_pos);
+        if (err != MZ_OK)
+            return err;
     }
     else if (new_pos < 0)
     {

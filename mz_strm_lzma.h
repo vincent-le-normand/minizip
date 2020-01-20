@@ -1,8 +1,8 @@
 /* mz_strm_lzma.h -- Stream for lzma inflate/deflate
-   Version 2.8.0, November 24, 2018
+   Version 2.9.1, November 15, 2019
    part of the MiniZip project
 
-   Copyright (C) 2010-2018 Nathan Moinvaziri
+   Copyright (C) 2010-2019 Nathan Moinvaziri
       https://github.com/nmoinvaz/minizip
 
    This program is distributed under the terms of the same license as lzma.

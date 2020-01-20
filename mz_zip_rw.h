@@ -1,8 +1,8 @@
 /* mz_zip_rw.h -- Zip reader/writer
-   Version 2.8.0, November 24, 2018
+   Version 2.9.1, November 15, 2019
    part of the MiniZip project
 
-   Copyright (C) 2010-2018 Nathan Moinvaziri
+   Copyright (C) 2010-2019 Nathan Moinvaziri
      https://github.com/nmoinvaz/minizip
 
    This program is distributed under the terms of the same license as zlib.
@@ -196,7 +196,7 @@ int32_t mz_zip_writer_entry_close(void *handle);
 int32_t mz_zip_writer_entry_write(void *handle, const void *buf, int32_t len);
 /* Writes data into entry for zip */
 
-int32_t mz_zip_writer_entry_sign(void *handle, uint8_t *message, int32_t message_size, 
+int32_t mz_zip_writer_entry_sign(void *handle, uint8_t *message, int32_t message_size,
     uint8_t *cert_data, int32_t cert_data_size, const char *cert_pwd);
 /* Signs uncompressed content of entry, call before closing */
 
@@ -217,7 +217,7 @@ int32_t mz_zip_writer_add_buffer(void *handle, void *buf, int32_t len, mz_zip_fi
 int32_t mz_zip_writer_add_file(void *handle, const char *path, const char *filename_in_zip);
 /* Adds an entry to the zip from a file */
 
-int32_t mz_zip_writer_add_path(void *handle, const char *path, const char *root_path, uint8_t include_path, 
+int32_t mz_zip_writer_add_path(void *handle, const char *path, const char *root_path, uint8_t include_path,
     uint8_t recursive);
 /* Enumerates a directory or pattern and adds entries to the zip */
 
@@ -246,6 +246,12 @@ void    mz_zip_writer_set_compress_method(void *handle, uint16_t compress_method
 
 void    mz_zip_writer_set_compress_level(void *handle, int16_t compress_level);
 /* Sets the compression level when adding files in zip */
+
+void    mz_zip_writer_set_follow_links(void *handle, uint8_t follow_links);
+/* Follow symbolic links when traversing directories and files to add */
+
+void    mz_zip_writer_set_store_links(void *handle, uint8_t store_links);
+/* Store symbolic links in zip file */
 
 void    mz_zip_writer_set_zip_cd(void *handle, uint8_t zip_cd);
 /* Sets additional flags to be set when adding files in zip */
