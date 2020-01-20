@@ -744,7 +744,7 @@ static int32_t mz_zip_entry_write_header(void *stream, uint8_t local, mz_zip_fil
     if (mask)
     {
         snprintf(masked_name, sizeof(masked_name), "%" PRIx32 "_%" PRIx64,
-            file_info->disk_number, file_info->disk_offset);
+            file_info->disk_number, (unsigned long)file_info->disk_offset);
         filename = masked_name;
     }
     else
